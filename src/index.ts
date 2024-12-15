@@ -5,12 +5,20 @@ import mongodb from "mongoose";
 import { MONGO_URI } from "./config.js";
 import { errorHandler } from "./handlers/errorHandler.js";
 
+import "./models/Group.js";
+import "./models/Location.js";
+import "./models/Teacher.js";
+
+import entityRoutes from "./routes/entity.js";
+
 const server = express();
 
 const port = 4000;
 
 server.use(cors({ origin: "*" }));
 server.use(bodyParser.json());
+
+server.use("/api/entities", entityRoutes);
 
 server.use(errorHandler);
 
