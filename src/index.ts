@@ -8,10 +8,12 @@ import { errorHandler } from "./handlers/errorHandler.js";
 import "./models/Course.js";
 import "./models/Group.js";
 import "./models/Location.js";
+import "./models/Schedule.js";
 import "./models/Teacher.js";
 
 import courseRoutes from "./routes/courses.js";
 import entityRoutes from "./routes/entities.js";
+import scheduleRoutes from "./routes/schedules.js";
 
 const server = express();
 
@@ -22,6 +24,7 @@ server.use(bodyParser.json());
 
 server.use("/api/entities", entityRoutes);
 server.use("/api/courses", courseRoutes);
+server.use("/api/schedules", scheduleRoutes);
 
 server.use(errorHandler);
 
