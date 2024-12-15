@@ -23,6 +23,12 @@ type DeleteEntityQuery = {
   schedule: string;
 };
 
+type DeleteEntiesQuery = {
+  schedule: string;
+  ids: string;
+  category: EntityCategory;
+};
+
 async function createEntity(
   req: Request<{}, { id: string }, CreateEntityBody, {}>,
   res: Response,
@@ -172,4 +178,53 @@ async function deleteEntity(
   return sendValidResponse(res, SuccessCode.NO_CONTENT);
 }
 
-export default { createEntity, getEntities, deleteEntity };
+async function deleteEntities(
+  req: Request<{}, void, {}, DeleteEntiesQuery>,
+  res: Response,
+) {
+  const { ids, category, schedule } = req.query;
+  const idsArray = ids.split(",");
+
+  const findSchedule = await Schedule.findById(schedule);
+  if (!findSchedule) {
+    throw new ErrorResponse(ErrorCode.BAD_REQUEST, "Invalid schedule.");
+  }
+
+  try {
+    switch (category) {
+      case EntityCategory.TEACHER:
+        await Teacher.deleteMany({ _id: { $in: idsArray } });
+        findSchedule.teachers = findSchedule.teachers.filter(
+          (teacherId) => !idsArray.includes(teacherId.toString()),
+        );
+        await findSchedule.save();
+        console.log(`Deleted teachers with ids: ${idsArray.join(", ")}`);
+        break;
+      case EntityCategory.GROUP:
+        await Group.deleteMany({ _id: { $in: idsArray } });
+        findSchedule.groups = findSchedule.groups.filter(
+          (groupId) => !idsArray.includes(groupId.toString()),
+        );
+        await findSchedule.save();
+        console.log(`Deleted groups with ids: ${idsArray.join(", ")}`);
+        break;
+      case EntityCategory.LOCATION:
+        await Location.deleteMany({ _id: { $in: idsArray } });
+        findSchedule.locations = findSchedule.locations.filter(
+          (locationId) => !idsArray.includes(locationId.toString()),
+        );
+        await findSchedule.save();
+        console.log(`Deleted locations with ids: ${idsArray.join(", ")}`);
+        break;
+      default:
+        throw new ErrorResponse(ErrorCode.BAD_REQUEST, "Invalid category.");
+    }
+  } catch (error) {
+    console.error(error);
+    throw new ErrorResponse(ErrorCode.SERVER_ERROR, "Something went wrong.");
+  }
+
+  return sendValidResponse(res, SuccessCode.NO_CONTENT);
+}
+
+export default { createEntity, getEntities, deleteEntity, deleteEntities };

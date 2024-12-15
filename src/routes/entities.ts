@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.get("/", asyncHandler(entityController.getEntities));
 router.delete("/", asyncHandler(entityController.deleteEntity));
+router.delete("/delete-many", asyncHandler(entityController.deleteEntities));
 router.post("/", asyncHandler(entityController.createEntity));
 
 export default router;
