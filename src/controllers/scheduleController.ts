@@ -1,20 +1,44 @@
 import { Request, Response } from "express";
-import { Schedule } from "../models/Schedule.js";
+import { ICourse } from "../models/Course.js";
+import { IGroup } from "../models/Group.js";
+import { ILocation } from "../models/Location.js";
+import { ISchedule, Schedule } from "../models/Schedule.js";
+import { ITeacher } from "../models/Teacher.js";
+import { CourseType, Entity } from "../types.js";
 import { ErrorCode, SuccessCode } from "../utils/constants.js";
 import { ErrorResponse, sendValidResponse } from "../utils/sendResponse.js";
 
 type CreateScheduleBody = {
+  name: string;
+};
+
+type PopulatedSchedule = Omit<
+  ISchedule,
+  "locations" | "teachers" | "groups" | "courses"
+> & {
+  teachers: ITeacher[];
+  groups: IGroup[];
+  locations: ILocation[];
+  courses: ICourse[];
+};
+
+type GetScheduleResponse = {
+  id: string;
   displayName: string;
+  teachers: Entity[];
+  groups: Entity[];
+  locations: Entity[];
+  courses: CourseType[];
 };
 
 async function createSchedule(
   req: Request<{}, { id: string }, CreateScheduleBody, {}>,
   res: Response,
 ) {
-  const { displayName } = req.body;
+  const { name } = req.body;
   let result;
   try {
-    result = await Schedule.create({ displayName });
+    result = await Schedule.create({ displayName: name });
   } catch (error) {
     console.error(error);
     throw new ErrorResponse(ErrorCode.SERVER_ERROR, "Something went wrong.");
@@ -46,6 +70,49 @@ async function getSchedules(
   }
 }
 
+async function getSchedule(
+  req: Request<{ id: string }, GetScheduleResponse, {}, {}>,
+  res: Response,
+) {
+  const { id } = req.params;
+  try {
+    const schedule = (await Schedule.findById(id).populate(
+      "teachers groups locations courses",
+    )) as unknown as PopulatedSchedule;
+
+    if (!schedule) {
+      throw new ErrorResponse(ErrorCode.NO_RESULT, "Schedule not found.");
+    }
+
+    const response: GetScheduleResponse = {
+      id: schedule._id.toString(),
+      displayName: schedule.displayName,
+      teachers: schedule.teachers.map((t) => ({
+        id: t._id.toString(),
+        displayName: t.displayName,
+      })),
+      groups: schedule.groups.map((g) => ({
+        id: g._id.toString(),
+        displayName: g.displayName,
+      })),
+      locations: schedule.locations.map((l) => ({
+        id: l._id.toString(),
+        displayName: l.displayName,
+      })),
+      courses: schedule.courses.map((c) => ({
+        id: c._id.toString(),
+        displayName: c.displayName,
+        subject: c.subject,
+      })),
+    };
+
+    sendValidResponse<GetScheduleResponse>(res, SuccessCode.OK, response);
+  } catch (error) {
+    console.error(error);
+    throw new ErrorResponse(ErrorCode.SERVER_ERROR, "Something went wrong.");
+  }
+}
+
 async function deleteSchedule(
   req: Request<{ id: string }, void, {}, {}>,
   res: Response,
@@ -60,4 +127,4 @@ async function deleteSchedule(
   }
 }
 
-export default { createSchedule, getSchedules, deleteSchedule };
+export default { createSchedule, getSchedules, deleteSchedule, getSchedule };

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { Course } from "../models/Course.js";
+import { Schedule } from "../models/Schedule.js";
 import { CourseType } from "../types.js";
 import { ErrorCode, SuccessCode } from "../utils/constants.js";
 import { ErrorResponse, sendValidResponse } from "../utils/sendResponse.js";
@@ -7,6 +8,7 @@ import { ErrorResponse, sendValidResponse } from "../utils/sendResponse.js";
 type CreateCourseBody = {
   displayName: string;
   subject: string;
+  schedule: string;
 };
 
 type GetCoursesQuery = {};
@@ -19,10 +21,18 @@ async function createCourse(
   req: Request<{}, { id: string }, CreateCourseBody, {}>,
   res: Response,
 ) {
-  const { displayName, subject } = req.body;
+  const { displayName, subject, schedule } = req.body;
   let result;
+
+  const findSchedule = await Schedule.findById(schedule);
+  if (!findSchedule) {
+    throw new ErrorResponse(ErrorCode.BAD_REQUEST, "Invalid schedule.");
+  }
+
   try {
     result = await Course.create({ displayName, subject });
+    findSchedule.courses.push(result._id);
+    await findSchedule.save();
   } catch (error) {
     console.error(error);
     throw new ErrorResponse(ErrorCode.SERVER_ERROR, "Something went wrong.");

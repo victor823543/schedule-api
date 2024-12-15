@@ -5,6 +5,7 @@ import { asyncHandler } from "../handlers/asyncHandler.js";
 const router = express.Router();
 
 router.get("/", asyncHandler(scheduleController.getSchedules));
+router.get("/:id", asyncHandler(scheduleController.getSchedule));
 router.delete("/", asyncHandler(scheduleController.deleteSchedule));
 router.post("/", asyncHandler(scheduleController.createSchedule));
 
