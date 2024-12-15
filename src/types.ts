@@ -3,6 +3,12 @@ export type Entity = {
   displayName: string;
 };
 
+export type CourseType = {
+  id: string;
+  displayName: string;
+  subject: string;
+};
+
 export enum EntityCategory {
   TEACHER = "teacher",
   GROUP = "group",
