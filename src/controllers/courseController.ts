@@ -17,6 +17,11 @@ type DeleteCourseQuery = {
   id: string;
 };
 
+type DeleteCoursesQuery = {
+  schedule: string;
+  ids: string;
+};
+
 async function createCourse(
   req: Request<{}, { id: string }, CreateCourseBody, {}>,
   res: Response,
@@ -81,4 +86,31 @@ async function deleteCourse(
   return sendValidResponse(res, SuccessCode.NO_CONTENT);
 }
 
-export default { createCourse, getCourses, deleteCourse };
+async function deleteCourses(
+  req: Request<{}, void, {}, DeleteCoursesQuery>,
+  res: Response,
+) {
+  const { ids, schedule } = req.query;
+  const idsArray = ids.split(",");
+
+  const findSchedule = await Schedule.findById(schedule);
+  if (!findSchedule) {
+    throw new ErrorResponse(ErrorCode.BAD_REQUEST, "Invalid schedule.");
+  }
+
+  try {
+    await Course.deleteMany({ _id: { $in: idsArray } });
+    findSchedule.courses = findSchedule.courses.filter(
+      (courseId) => !idsArray.includes(courseId.toString()),
+    );
+    await findSchedule.save();
+    console.log(`Deleted courses with ids: ${idsArray.join(", ")}`);
+  } catch (error) {
+    console.error(error);
+    throw new ErrorResponse(ErrorCode.SERVER_ERROR, "Something went wrong.");
+  }
+
+  return sendValidResponse(res, SuccessCode.NO_CONTENT);
+}
+
+export default { createCourse, getCourses, deleteCourse, deleteCourses };
