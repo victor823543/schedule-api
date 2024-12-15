@@ -14,3 +14,19 @@ export enum EntityCategory {
   GROUP = "group",
   LOCATION = "location",
 }
+
+export type CalendarEventType = {
+  id: string;
+  displayName: string;
+  belongsTo: Entity;
+  type?: "LUNCH";
+  course?: CourseType;
+  teachers: Entity[];
+  groups: Entity[];
+  inLocations: Entity[];
+  duration: number;
+  createdAt: Date;
+  updatedAt: Date;
+  color: string;
+  cancelled?: boolean;
+};

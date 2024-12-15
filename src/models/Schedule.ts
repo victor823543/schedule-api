@@ -1,6 +1,7 @@
 import { model, Schema, Types } from "mongoose";
 
 export type ISchedule = {
+  _id: Types.ObjectId;
   displayName: string;
   start: string;
   end: string;

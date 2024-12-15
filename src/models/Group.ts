@@ -1,6 +1,7 @@
-import { Schema, model } from "mongoose";
+import { Schema, Types, model } from "mongoose";
 
 export type IGroup = {
+  _id: Types.ObjectId;
   displayName: string;
 };
 
