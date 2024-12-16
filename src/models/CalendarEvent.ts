@@ -2,7 +2,6 @@ import { model, Schema, Types } from "mongoose";
 
 export type ICalendarEvent = {
   _id: Types.ObjectId;
-  displayName: string;
   belongsTo: Types.ObjectId;
   type?: "LUNCH";
   course?: Types.ObjectId;
@@ -19,7 +18,6 @@ export type ICalendarEvent = {
 };
 
 const calendarEventSchema = new Schema<ICalendarEvent>({
-  displayName: { type: String, required: true },
   belongsTo: { type: Schema.Types.ObjectId, ref: "Schedule", required: true },
   type: { type: String, enum: ["LUNCH"], required: false },
   course: { type: Schema.Types.ObjectId, ref: "Course", required: false },

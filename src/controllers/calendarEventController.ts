@@ -1,17 +1,16 @@
-import { endOfWeek } from "date-fns";
+import { endOfWeek, startOfWeek } from "date-fns";
 import { Request, Response } from "express";
 import { CalendarEvent, ICalendarEvent } from "../models/CalendarEvent.js";
 import { ICourse } from "../models/Course.js";
-import { IGroup } from "../models/Group.js";
-import { ILocation } from "../models/Location.js";
+import { Group, IGroup } from "../models/Group.js";
+import { ILocation, Location } from "../models/Location.js";
 import { ISchedule, Schedule } from "../models/Schedule.js";
-import { ITeacher } from "../models/Teacher.js";
-import { CalendarEventType } from "../types.js";
+import { ITeacher, Teacher } from "../models/Teacher.js";
+import { CalendarEventType, Entity } from "../types.js";
 import { ErrorCode, SuccessCode } from "../utils/constants.js";
 import { ErrorResponse, sendValidResponse } from "../utils/sendResponse.js";
 
 type CreateEventBody = {
-  displayName: string;
   start: string;
   end: string;
   duration: number;
@@ -20,6 +19,15 @@ type CreateEventBody = {
   locations: string[];
   teachers: string[];
   groups: string[];
+  color: string;
+  belongsTo: string;
+};
+
+type CreateEventResponse = {
+  week: string;
+  teacher: Entity;
+  group: Entity;
+  location: Entity;
 };
 
 type PopulatedCalendarEvent = Omit<
@@ -34,11 +42,10 @@ type PopulatedCalendarEvent = Omit<
 };
 
 async function createEvent(
-  req: Request<{}, { id: string }, CreateEventBody, {}>,
+  req: Request<{}, CreateEventResponse, CreateEventBody, {}>,
   res: Response,
 ) {
   const {
-    displayName,
     start,
     end,
     duration,
@@ -47,7 +54,15 @@ async function createEvent(
     locations,
     teachers,
     groups,
+    color,
+    belongsTo,
   } = req.body;
+
+  const findSchedule = await Schedule.findById(belongsTo);
+
+  if (!findSchedule) {
+    throw new ErrorResponse(ErrorCode.BAD_REQUEST, "Invalid schedule.");
+  }
 
   if (type && type !== "LUNCH") {
     throw new ErrorResponse(ErrorCode.BAD_REQUEST, "Invalid type.");
@@ -57,9 +72,22 @@ async function createEvent(
     throw new ErrorResponse(ErrorCode.BAD_REQUEST, "Invalid duration.");
   }
 
+  if (!locations.length || !teachers.length || !groups.length) {
+    throw new ErrorResponse(
+      ErrorCode.BAD_REQUEST,
+      "Invalid locations, teachers or groups",
+    );
+  }
+
+  if (!start || !end || !duration) {
+    throw new ErrorResponse(
+      ErrorCode.BAD_REQUEST,
+      "Invalid start, end or duration",
+    );
+  }
+
   try {
     const result = await CalendarEvent.create({
-      displayName,
       start,
       end,
       duration,
@@ -68,13 +96,43 @@ async function createEvent(
       locations,
       teachers,
       groups,
+      color: color || "#818cf8",
+      belongsTo,
     });
     if (!result) {
       throw new ErrorResponse(ErrorCode.SERVER_ERROR, "Something went wrong.");
     }
-    return sendValidResponse<{ id: string }>(res, SuccessCode.CREATED, {
-      id: result._id.toString(),
-    });
+
+    const startDate = new Date(start);
+    const weekStartDate = startOfWeek(startDate, {
+      weekStartsOn: 1,
+    }).toLocaleDateString("en-CA");
+
+    const [teacher, group, location] = await Promise.all([
+      Teacher.findById(teachers[0]),
+      Group.findById(groups[0]),
+      Location.findById(locations[0]),
+    ]);
+
+    if (!teacher || !group || !location) {
+      throw new ErrorResponse(ErrorCode.SERVER_ERROR, "Something went wrong.");
+    }
+
+    const response: CreateEventResponse = {
+      teacher: { id: teacher._id.toString(), displayName: teacher.displayName },
+      group: { id: group._id.toString(), displayName: group.displayName },
+      location: {
+        id: location._id.toString(),
+        displayName: location.displayName,
+      },
+      week: weekStartDate,
+    };
+
+    return sendValidResponse<CreateEventResponse>(
+      res,
+      SuccessCode.CREATED,
+      response,
+    );
   } catch (error) {
     console.error(error);
     throw new ErrorResponse(ErrorCode.SERVER_ERROR, "Something went wrong.");
@@ -130,7 +188,6 @@ async function getEvents(
         id: e.belongsTo._id.toString(),
         displayName: e.belongsTo.displayName,
       },
-      displayName: e.displayName,
       start: e.start,
       end: e.end,
       duration: e.duration,
@@ -186,7 +243,6 @@ async function deleteEvent(
 }
 
 type UpdateEventBody = {
-  displayName?: string;
   start?: string;
   end?: string;
   duration?: number;
@@ -202,17 +258,14 @@ async function updateEvent(
   res: Response,
 ) {
   const { id } = req.params;
-  const {
-    displayName,
-    start,
-    end,
-    duration,
-    type,
-    course,
-    locations,
-    teachers,
-    groups,
-  } = req.body;
+  const { start, end, duration, type, course, locations, teachers, groups } =
+    req.body;
+
+  const findEvent = await CalendarEvent.findById(id);
+
+  if (!findEvent) {
+    throw new ErrorResponse(ErrorCode.BAD_REQUEST, "Invalid event.");
+  }
 
   if (type && type !== "LUNCH") {
     throw new ErrorResponse(ErrorCode.BAD_REQUEST, "Invalid type.");
@@ -224,7 +277,6 @@ async function updateEvent(
 
   try {
     await CalendarEvent.findByIdAndUpdate(id, {
-      ...(displayName && { displayName }),
       ...(start && { start }),
       ...(end && { end }),
       ...(duration && { duration }),

@@ -17,7 +17,6 @@ export enum EntityCategory {
 
 export type CalendarEventType = {
   id: string;
-  displayName: string;
   belongsTo: Entity;
   type?: "LUNCH";
   course?: CourseType;

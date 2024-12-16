@@ -17,7 +17,7 @@ router.post(
   asyncHandler(calendarEventController.createEvent),
 );
 router.put(
-  "/calendar_events",
+  "/calendar_events/:id",
   asyncHandler(calendarEventController.updateEvent),
 );
 
