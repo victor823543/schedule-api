@@ -9,7 +9,7 @@ router.get(
   asyncHandler(calendarEventController.getEvents),
 );
 router.delete(
-  "/calendar_events",
+  "/calendar_events/:id",
   asyncHandler(calendarEventController.deleteEvent),
 );
 router.post(

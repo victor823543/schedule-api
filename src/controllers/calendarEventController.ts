@@ -223,15 +223,15 @@ async function getEvents(
   }
 }
 
-type DeleteEventQuery = {
+type DeleteEventParams = {
   id: string;
 };
 
 async function deleteEvent(
-  req: Request<{}, void, {}, DeleteEventQuery>,
+  req: Request<DeleteEventParams, void, {}, {}>,
   res: Response,
 ) {
-  const { id } = req.query;
+  const { id } = req.params;
 
   try {
     await CalendarEvent.findByIdAndDelete(id);
